@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Newspaper Register",
+    "slug": "newspaper-register",
+    "scheme": "nms",
+    "version": "0.1.0",
+    "platforms": ["android"],
+    "android": { "package": "com.praveenbenny.nms" },
+    "userInterfaceStyle": "light",
+    "extra": {
+      "eas": {
+        "projectId": "514811d6-4a9a-469b-8b1e-d70a66a8dc5b"
+      }
+    },
+    "owner": "praveenbenny007",
+    "plugins": [
+      "expo-sqlite",
+      ["expo-sharing", { "android": { "enabled": true, "singleShareMimeTypes": ["image/*"], "multipleShareMimeTypes": ["image/*"] } }],
+      "expo-font",
+      "expo-router",
+      "expo-background-task"
+    ]
+  }
+}

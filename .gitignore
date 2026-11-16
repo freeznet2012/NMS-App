@@ -1,0 +1,10 @@
+node_modules/
+.expo/
+dist/
+dist-check/
+.test-build/
+/android/
+/ios/
+*.apk
+*.aab
+*.nms

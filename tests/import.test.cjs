@@ -1,0 +1,40 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const XLSX = require('xlsx');
+const fs = require('node:fs');
+const { emptyRegister } = require('../.test-build/model');
+const { parseWorkbook, applyImport } = require('../.test-build/import');
+const { prepareMonth, ledger } = require('../.test-build/billing');
+const { validateRegister } = require('../.test-build/validation');
+let serial=0; const id=()=> 'import-'+ ++serial;
+const bytes=fs.readFileSync('verification/fixtures/temple-road.xlsx');
+test('workbook preview and atomic insertion preserve copies, opening dues and route order',()=>{
+  const state=emptyRegister(); const preview=parseWorkbook(bytes,state,'2026-06','first','sample',id);
+  assert.equal(preview.rows.length,42); assert.equal(preview.rows.reduce((n,r)=>n+r.codes.length,0),56);
+  assert.equal(preview.rows.reduce((n,r)=>n+r.pending.reduce((a,p)=>a+p.amount,0),0),240000);
+  applyImport(state,preview,'2026-06',id); prepareMonth(state,'2026-06',id); validateRegister(state);
+  assert.equal(state.households[41].versions[0].position,42);
+  assert.equal(state.households.reduce((n,h)=>n+Object.values(ledger(state,h.id).remaining).reduce((a,b)=>a+b,0),0),1920000);
+  assert.throws(()=>applyImport(state,preview,'2026-06',id),/already been imported/);
+  assert.equal(parseWorkbook(bytes,state,'2026-06','first','same',id).repeated,true);
+});
+test('unknown codes, duplicate names and invalid opening months need review',()=>{
+  const book=XLSX.read(bytes); const data=XLSX.utils.sheet_to_json(book.Sheets.Customers);
+  data[0].Periodicals='UNKNOWN'; data[1].Household=data[2].Household;
+  data[3]['2026-06 pending (₹)']=100;
+  book.Sheets.Customers=XLSX.utils.json_to_sheet(data);
+  const preview=parseWorkbook(XLSX.write(book,{type:'buffer',bookType:'xlsx'}),emptyRegister(),'2026-06','other','sample',id);
+  assert.equal(preview.rows[0].include,false); assert.match(preview.rows[0].errors[0],/Unknown code/);
+  assert.equal(preview.rows[2].possibleDuplicate,true); assert.equal(preview.rows[2].include,false);
+  assert.equal(preview.rows[3].include,false);
+});
+test('incremental route import inserts new households without changing existing records',()=>{
+  const state=emptyRegister(); applyImport(state,parseWorkbook(bytes,state,'2026-06','first','sample',id),'2026-06',id);
+  const before=JSON.stringify(state.households);
+  const book=XLSX.read(bytes); const data=XLSX.utils.sheet_to_json(book.Sheets.Customers).slice(0,2).map(r=>({...r,Route:'Canal Lane'}));
+  book.Sheets.Customers=XLSX.utils.json_to_sheet(data);
+  const preview=parseWorkbook(XLSX.write(book,{type:'buffer',bookType:'xlsx'}),state,'2026-06','second','second',id);
+  applyImport(state,preview,'2026-06',id);
+  assert.equal(state.households.length,44); assert.equal(state.routes.length,2);
+  assert.equal(JSON.stringify(state.households.slice(0,42)),before); validateRegister(state);
+});
