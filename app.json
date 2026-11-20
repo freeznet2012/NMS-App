@@ -2,10 +2,19 @@
   "expo": {
     "name": "Newspaper Register",
     "slug": "newspaper-register",
+    "icon": "./assets/app-icon.png",
     "scheme": "nms",
     "version": "0.1.0",
     "platforms": ["android"],
-    "android": { "package": "com.praveenbenny.nms" },
+    "android": {
+      "package": "com.praveenbenny.nms",
+      "allowBackup": false,
+      "blockedPermissions": ["android.permission.RECORD_AUDIO"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon-foreground.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
     "userInterfaceStyle": "light",
     "extra": {
       "eas": {

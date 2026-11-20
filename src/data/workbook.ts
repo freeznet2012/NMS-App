@@ -5,9 +5,11 @@ import { type Register } from '../domain/model';
 import { parseWorkbook, applyImport, type ImportPreview } from '../domain/import';
 import { changeRegister, newId } from './store';
 export type { ImportPreview } from '../domain/import';
+export const workbookSizeLimitMB = 10;
+
 export async function readWorkbook(uri: string, state: Register, firstMonth: string): Promise<ImportPreview> {
   const file = new File(uri);
-  if (file.size > 10_000_000) throw new Error('Please import a workbook smaller than 10 MB');
+  if (file.size > workbookSizeLimitMB * 1_000_000) throw new Error(`Choose a workbook no larger than ${workbookSizeLimitMB} MB`);
   const bytes = await file.bytes();
   const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, new Uint8Array(bytes));
   const hash = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');

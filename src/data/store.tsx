@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import * as SQLite from 'expo-sqlite';
 import * as Crypto from 'expo-crypto';
-import { emptyRegister, type Register, type Activity } from '../domain/model';
+import { emptyRegister, latestRegisterFileVersion, registerFileVersion, type Register, type Activity } from '../domain/model';
 import { validateRegister } from '../domain/validation';
 import { ActivityIndicator, Text, View } from 'react-native';
 
@@ -18,7 +18,9 @@ async function initialize() {
   database = await SQLite.openDatabaseAsync('nms.db', { useNewConnection: true });
   await database.execAsync('PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS register (id INTEGER PRIMARY KEY CHECK(id=1), version INTEGER NOT NULL, data TEXT NOT NULL);');
   const row = await database.getFirstAsync<{ data: string; version: number }>('SELECT data, version FROM register WHERE id=1');
-  if (row && row.version !== 1) throw new Error('This register requires a newer app version');
+  if (row && (row.version < 1 || row.version > latestRegisterFileVersion)) {
+    throw new Error('This register requires a newer app version');
+  }
   current = row ? validateRegister(JSON.parse(row.data)) : emptyRegister();
   if (!row) await database.runAsync('INSERT INTO register VALUES (1,1,?)', JSON.stringify(current));
 }
@@ -32,7 +34,7 @@ export function changeRegister(update: (draft: Register) => void, activity?: Omi
     if (activity) next.activity.push({ ...activity, id: newId(), at: next.updatedAt });
     validateRegister(next);
     await database.withExclusiveTransactionAsync(async transaction => {
-      await transaction.runAsync('UPDATE register SET data=? WHERE id=1', JSON.stringify(next));
+      await transaction.runAsync('UPDATE register SET version=?, data=? WHERE id=1', registerFileVersion(next), JSON.stringify(next));
     });
     current = next;
     subscribers.forEach(notify => notify());
@@ -51,7 +53,7 @@ export async function restoreRegister(state: Register): Promise<void> {
   // Restore is serialized with saves. Preserve the backup's own change timestamp.
   const operation = queue.then(async () => {
     await database.withExclusiveTransactionAsync(async transaction => {
-      await transaction.runAsync('UPDATE register SET data=? WHERE id=1', JSON.stringify(state));
+      await transaction.runAsync('UPDATE register SET version=?, data=? WHERE id=1', registerFileVersion(state), JSON.stringify(state));
     });
     current = state;
     subscribers.forEach(notify => notify());

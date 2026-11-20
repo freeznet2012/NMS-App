@@ -1,1 +1,1 @@
-export { RouteScreen as default } from '../src/screens/routes';
+export { RouteScreen as default } from '../src/screens/route';

@@ -37,9 +37,18 @@ export async function createBackup(): Promise<File> {
   }
   const encoded = await encodeBackup(state, images, checksum);
   const file = new File(backups, 'NMS-' + encoded.manifest.createdAt.replace(/[:.]/g, '-') + '.nms');
-  file.write(encoded.bytes);
-  await inspectBackup(file.uri);
-  return file;
+  const staged = new File(backups, newId() + '.partial');
+  try {
+    staged.write(encoded.bytes);
+    await inspectBackup(staged.uri);
+    // Both paths are in the same private folder. An interrupted write stays
+    // outside the list of restorable .nms archives.
+    await staged.move(file);
+    return file;
+  } catch (error) {
+    try { if (staged.exists) staged.delete(); } catch { /* Preserve the original failure. */ }
+    throw error;
+  }
 }
 export async function inspectBackup(uri: string) {
   const archive = new File(uri);

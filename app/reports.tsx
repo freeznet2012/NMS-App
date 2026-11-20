@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { Alert, FlatList, Pressable, View } from 'react-native';
-import { Directory, File } from 'expo-file-system';
+import { File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as Print from 'expo-print';
 import { changeRegister, newId, snapshot, useRegister } from '../src/data/store';
 import { prepareMonth } from '../src/domain/billing';
-import { lastCompletedMonth, money, type Register } from '../src/domain/model';
+import { lastCompletedMonth, money, monthKey, type Register } from '../src/domain/model';
 import { type ReportSelection } from '../src/domain/reports';
 import { reportData, reportExcel, reportHtml, reportPdf } from '../src/data/reports';
-import { Button, Choice, ErrorText, Icon, Label, MonthPicker, Row, Screen, useWords } from '../src/components/ui';
+import { saveFileCopy } from '../src/data/export-file';
+import { Button, Choice, ErrorText, Icon, Label, Row, Screen, useWords } from '../src/components/ui';
+import { MonthPicker } from '../src/components/month-picker';
 export default function ReportsScreen() {
   const state = useRegister(); const t = useWords();
   const [selection, setSelection] = useState<ReportSelection>({ month: lastCompletedMonth(), type: 'master', scope: 'all', scopeId: '' });
@@ -22,7 +24,8 @@ export default function ReportsScreen() {
       renderItem={({ item: row }) => <Row title={row.position + '. ' + row.name} detail={row.route + ' · ' + row.papers} right={selection.type === 'dues' ? money(row.remaining) : undefined} />}
       ListHeaderComponent={<View style={{ gap: 16 }}>
     {(['master', 'dues'] as const).map(type => <Pressable key={type} accessibilityRole="radio" accessibilityState={{ checked: selection.type === type }} onPress={() => change({ type })} style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 16 }}><Icon name={selection.type === type ? 'radio-button-checked' : 'radio-button-unchecked'} /><Label bold>{type === 'master' ? t('Master list', 'പ്രധാന പട്ടിക') : t('Monthly dues', 'മാസ കുടിശ്ശിക')}</Label></Pressable>)}
-    <Label>{t('Month', 'മാസം')}</Label><MonthPicker value={selection.month} onChange={month => change({ month })} />
+    <MonthPicker label={t('Report month', 'റിപ്പോർട്ട് മാസം')} title={t('Select report month', 'റിപ്പോർട്ട് മാസം തിരഞ്ഞെടുക്കുക')}
+      value={selection.month} maxMonth={monthKey(new Date())} onChange={month => change({ month })} />
     <Row title={t('Scope', 'പരിധി')} detail={selection.scope === 'all' ? t('All households', 'എല്ലാ വീടുകളും') : selection.scope === 'route' ? t('Route', 'റൂട്ട്') : t('Delivery boy', 'വിതരണക്കാരൻ')} onPress={() => setChoice('scope')} />
     {selection.scope !== 'all' && <Row title={selection.scope === 'route' ? t('Route', 'റൂട്ട്') : t('Delivery boy', 'വിതരണക്കാരൻ')} detail={(selection.scope === 'route' ? state.routes : state.boys).find(r => r.id === selection.scopeId)?.name ?? t('Choose', 'തിരഞ്ഞെടുക്കുക')} onPress={() => setChoice('id')} />}
     <Button title={t('Preview report', 'റിപ്പോർട്ട് കാണുക')} busy={busy} disabled={selection.scope !== 'all' && !selection.scopeId} onPress={() => run(async () => { await changeRegister(d => prepareMonth(d, selection.month, newId)); setPreview(await snapshot()); })} />
@@ -32,10 +35,8 @@ export default function ReportsScreen() {
       <Button secondary title={t('Export Excel', 'എക്സൽ കയറ്റുമതി')} busy={busy} onPress={() => run(async () => { await Sharing.shareAsync(reportExcel(preview, selection).uri, { mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); })} />
       <Button secondary title={t('Save PDF', 'PDF സൂക്ഷിക്കുക')} busy={busy} onPress={() => run(async () => {
         const pdf = await reportPdf(preview, selection);
-        const folder = await Directory.pickDirectoryAsync();
-        const destination = folder.createFile('NMS-' + selection.type + '-' + selection.month + '.pdf', 'application/pdf');
-        new File(pdf.uri).copy(destination);
-        Alert.alert(t('PDF saved', 'PDF സൂക്ഷിച്ചു'), destination.name);
+        const name = await saveFileCopy(new File(pdf.uri), 'NMS-' + selection.type + '-' + selection.month + '.pdf', 'application/pdf');
+        if (name) Alert.alert(t('PDF saved', 'PDF സൂക്ഷിച്ചു'), name);
       })} />
       <Button secondary title={t('Print', 'പ്രിന്റ്')} busy={busy} onPress={() => run(async () => { await Print.printAsync({ html: reportHtml(preview, selection) }); })} />
     </>}

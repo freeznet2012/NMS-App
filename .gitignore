@@ -8,3 +8,17 @@ dist-check/
 *.apk
 *.aab
 *.nms
+
+# Local uploads and packaged pilot builds
+/.codex-attachments/
+/verification/NMS-*-pilot.zip
+
+# Local configuration, secrets, and transient files
+.env
+.env.*
+!.env.example
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

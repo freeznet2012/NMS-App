@@ -1,0 +1,15 @@
+// Reduce native object path lengths for local Windows builds of this project.
+gradle.beforeProject { project ->
+    if (project.path != ':app') return
+
+    project.pluginManager.withPlugin('com.android.application') {
+        project.androidComponents.finalizeDsl { android ->
+            android.externalNativeBuild.cmake.buildStagingDirectory(
+                new File(System.getenv('USERPROFILE'), '.nms-cxx')
+            )
+            android.defaultConfig.externalNativeBuild.cmake.arguments.add(
+                '-DCMAKE_OBJECT_PATH_MAX=235'
+            )
+        }
+    }
+}

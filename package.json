@@ -2,7 +2,7 @@
   "name": "newspaper-register",
   "version": "0.1.0",
   "private": true,
-  "main": "expo-router/entry",
+  "main": "index.js",
   "expo": {
     "autolinking": {
       "android": { "buildFromSource": ["expo-sqlite"] }

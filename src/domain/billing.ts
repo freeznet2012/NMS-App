@@ -1,4 +1,4 @@
-import { billCharge, profileAt, validMonth, type Bill, type Month, type Payment, type Register } from './model';
+import { billCharge, monthlyItemsAt, profileAt, rateAt, validMonth, type Bill, type Month, type Payment, type Register } from './model';
 
 export interface Allocation { billId: string; month: Month; amount: number }
 export interface Ledger {
@@ -47,6 +47,35 @@ export function remainingForBill(bill: Bill, balances: Ledger): number {
   return (balances.remaining[bill.id] ?? 0) + bill.carry.reduce(
     (sum, carry) => sum + Math.min(carry.amount, balances.remaining[carry.billId] ?? 0), 0);
 }
+export function summarizeBill(bill: Bill, balances: Ledger) {
+  const original = originalTotal(bill);
+  const remaining = remainingForBill(bill, balances);
+  return { original, settled: original - remaining, remaining };
+}
+
+export function customerBalance(register: Register, customerId: string) {
+  const balances = ledger(register, customerId);
+  const bills = register.bills.filter(bill => bill.customerId === customerId)
+    .sort((left, right) => left.month.localeCompare(right.month));
+  const outstanding = [];
+  const settledMonths = [];
+  let total = 0;
+  for (const bill of bills) {
+    // The customer total uses each month's own ledger balance once.
+    const amount = balances.remaining[bill.id];
+    if (amount > 0) {
+      outstanding.push({ month: bill.month, amount });
+      total += amount;
+    } else {
+      settledMonths.push(bill.month);
+    }
+  }
+  const credit = Object.values(balances.credits).reduce((sum, amount) => sum + amount, 0);
+  const payments = register.payments.filter(payment => payment.customerId === customerId)
+    .reverse().sort((left, right) => Date.parse(right.enteredAt) - Date.parse(left.enteredAt));
+  return { outstanding, settledMonths, total, credit, payments };
+}
+
 export function paymentDefault(register: Register, customerId: string): number {
   const unpaid = Object.values(ledger(register, customerId).remaining).filter(amount => amount > 0);
   return unpaid.length === 1 ? unpaid[0] : 0;
@@ -72,15 +101,17 @@ export function prepareMonth(register: Register, month: Month, id: () => string)
       const lines = profile.active ? profile.subscriptions.map(sub => {
         const paper = register.periodicals.find(p => p.id === sub.periodicalId);
         if (!paper) throw new Error('A subscribed periodical is missing');
-        const rate = [...paper.rates].sort((a, b) => b.month.localeCompare(a.month)).find(r => r.month <= current);
+        const rate = rateAt(paper, current);
         if (!rate) throw new Error(`Set a price for ${paper.code} in ${current}`);
         const specialApplies = sub.specialRate !== undefined && !!sub.specialSince && rate.month <= sub.specialSince;
         return { periodicalId: paper.id, code: paper.code, quantity: sub.quantity,
           rate: specialApplies ? sub.specialRate! : rate.amount, deduction: 0 };
       }) : [];
+      const items = profile.active ? monthlyItemsAt(customer, current) : [];
       register.bills.push({ id: id(), customerId: customer.id, month: current,
         name: profile.name, routeId: profile.routeId, boyId: profile.boyId,
-        position: profile.position, lines, carry });
+        position: profile.position, lines, carry,
+        ...(items.length ? { customItems: items.map(item => ({ ...item, recurring: true as const })) } : {}) });
     }
     date.setMonth(date.getMonth() + 1);
   }

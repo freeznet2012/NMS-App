@@ -1,12 +1,12 @@
 # NMS — Newspaper Management System
 
-Offline Android newspaper register built with Expo SDK 57, React Native and TypeScript. Requirements, approved design references and the per-screen verification checklist are in [Plan.md](Plan.md). This is an implementation in progress, not yet a pilot release.
+Offline Android newspaper register built with Expo SDK 57, React Native and TypeScript. Requirements and approved designs are in [Plan.md](Plan.md). Current verification and pilot status are in the [verification checklist](verification/README.md).
 
 ## Run
 
 Install dependencies with `npm ci`. For an Expo Go preview, use `npm start` (Expo Go SDK 57). Screens, data entry, import and manual backup work in this preview; incoming Android shares and background scheduling need a native development build.
 
-The entry point is Expo Router (`app/`). Shared controls live in `src/components`, billing/import/report/recovery rules in `src/domain`, and device persistence/file operations in `src/data`.
+`index.js` registers the backup task before loading Expo Router (`app/`). Shared controls live in `src/components`, billing/import/report/recovery rules in `src/domain`, and device persistence/file operations in `src/data`.
 
 On this Windows PC, a local Android 15 emulator named `NMS_Phone` is installed. Start it with:
 
