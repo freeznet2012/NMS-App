@@ -6,6 +6,7 @@ dist-check/
 /android/
 /ios/
 *.apk
+!/releases/*.apk
 *.aab
 *.nms
 
