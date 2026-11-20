@@ -2,8 +2,6 @@
 
 Offline Android newspaper register built with Expo SDK 57, React Native and TypeScript. Requirements and approved designs are in [Plan.md](Plan.md). Current verification and pilot status are in the [verification checklist](verification/README.md).
 
-The [pilot APK](releases/NMS-0.1.0-pilot-backups-refresh.apk) is included for Android testing. It uses a development signing key. The source, lockfile, design references, test fixtures, and build configuration are included for a fresh setup.
-
 ## Run
 
 Install dependencies with `npm ci`. For an Expo Go preview, use `npm start` (Expo Go SDK 57). Screens, data entry, import and manual backup work in this preview; incoming Android shares and background scheduling need a native development build.
@@ -38,7 +36,7 @@ npx.cmd expo export --platform android --output-dir dist-check
 
 Automated tests cover billing carry, partial payments, selected-month payments, advance reversal, special-price expiry, write-offs, historical ordering, import review and incremental inserts, and backup checksums/images. They run compiled domain code with Node's test runner.
 
-`verification/fixtures/temple-road.xlsx` is synthetic test data: 42 households, 56 newspaper copies and ₹2,400 in opening dues. Recreate it with `node verification/fixtures/create-workbook.cjs`. Never treat its prices or names as the real register. Emulator screenshots and build logs are local artifacts; task completion is tracked in the plan.
+`verification/fixtures/temple-road.xlsx` is synthetic test data: 42 households, 56 newspaper copies and ₹2,400 in opening dues. Recreate it with `node verification/fixtures/create-workbook.cjs`. Never treat its prices or names as the real register. Captured emulator evidence is under `verification/screens/`; task completion is tracked in the plan.
 
 ## Storage and backups
 

@@ -6,15 +6,12 @@ dist-check/
 /android/
 /ios/
 *.apk
-!/releases/*.apk
 *.aab
 *.nms
 
 # Local uploads and packaged pilot builds
 /.codex-attachments/
 /verification/NMS-*-pilot.zip
-/verification/screens/
-/verification/*.log
 
 # Local configuration, secrets, and transient files
 .env
